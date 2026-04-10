@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DAILY_DIR = ROOT_DIR / "daily"
 KNOWLEDGE_DIR = ROOT_DIR / "knowledge"
+RAW_DIR = ROOT_DIR / "raw"
+PROCESSED_DIR = ROOT_DIR / "processed"
 CONCEPTS_DIR = KNOWLEDGE_DIR / "concepts"
 CONNECTIONS_DIR = KNOWLEDGE_DIR / "connections"
 QA_DIR = KNOWLEDGE_DIR / "qa"

@@ -35,15 +35,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 async def compile_daily_log(log_path: Path, state: dict) -> float:
     """Compile a single daily log into knowledge articles.
 
-    Returns the API cost of the compilation.
+    Returns the API cost of the compilation (always 0.0 for Gemini CLI as it doesn't report cost).
     """
-    from claude_agent_sdk import (
-        AssistantMessage,
-        ClaudeAgentOptions,
-        ResultMessage,
-        TextBlock,
-        query,
-    )
+    from utils import read_wiki_index, list_wiki_articles, run_agent
 
     log_content = log_path.read_text(encoding="utf-8")
     schema = AGENTS_FILE.read_text(encoding="utf-8")
@@ -88,14 +82,16 @@ and extract knowledge into structured wiki articles.
 ## Your Task
 
 Read the daily log above and compile it into wiki articles following the schema exactly.
+Use your tools (Read, Write, Edit, Glob, Grep) to update the knowledge base.
 
 ### Rules:
 
 1. **Extract key concepts** - Identify 3-7 distinct concepts worth their own article
-2. **Create concept articles** in `knowledge/concepts/` - One .md file per concept
+2. **Create concept articles** in `knowledge/concepts/[category]/` - One .md file per concept. 
+   - You MUST group related concepts into logical subdirectories (e.g., `knowledge/concepts/ml/`, `knowledge/concepts/web/`, `knowledge/concepts/tools/`). Do not put them flatly in `concepts/`.
    - Use the exact article format from AGENTS.md (YAML frontmatter + sections)
    - Include `sources:` in frontmatter pointing to the daily log file
-   - Use `[[concepts/slug]]` wikilinks to link to related concepts
+   - Use `[[concepts/category/slug]]` wikilinks to link to related concepts
    - Write in encyclopedia style - neutral, comprehensive
 3. **Create connection articles** in `knowledge/connections/` if this log reveals non-obvious
    relationships between 2+ existing concepts
@@ -107,8 +103,8 @@ Read the daily log above and compile it into wiki articles following the schema 
    ```
    ## [{timestamp}] compile | {log_path.name}
    - Source: daily/{log_path.name}
-   - Articles created: [[concepts/x]], [[concepts/y]]
-   - Articles updated: [[concepts/z]] (if any)
+   - Articles created: [[concepts/category/x]], [[concepts/category/y]]
+   - Articles updated: [[concepts/category/z]] (if any)
    ```
 
 ### File paths:
@@ -116,38 +112,13 @@ Read the daily log above and compile it into wiki articles following the schema 
 - Write connection articles to: {CONNECTIONS_DIR}
 - Update index at: {KNOWLEDGE_DIR / 'index.md'}
 - Append log at: {KNOWLEDGE_DIR / 'log.md'}
-
-### Quality standards:
-- Every article must have complete YAML frontmatter
-- Every article must link to at least 2 other articles via [[wikilinks]]
-- Key Points section should have 3-5 bullet points
-- Details section should have 2+ paragraphs
-- Related Concepts section should have 2+ entries
-- Sources section should cite the daily log with specific claims extracted
 """
 
-    cost = 0.0
-
-    try:
-        async for message in query(
-            prompt=prompt,
-            options=ClaudeAgentOptions(
-                cwd=str(ROOT_DIR),
-                system_prompt={"type": "preset", "preset": "claude_code"},
-                allowed_tools=["Read", "Write", "Edit", "Glob", "Grep"],
-                permission_mode="acceptEdits",
-                max_turns=30,
-            ),
-        ):
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        pass  # compilation output - LLM writes files directly
-            elif isinstance(message, ResultMessage):
-                cost = message.total_cost_usd or 0.0
-                print(f"  Cost: ${cost:.4f}")
-    except Exception as e:
-        print(f"  Error: {e}")
+    # For compilation, we need tool use to write files.
+    # 'auto_edit' allows writing and editing files automatically.
+    output = run_agent(prompt, approval_mode="auto_edit")
+    if "ERROR" in output:
+        print(f"  {output}")
         return 0.0
 
     # Update state
@@ -155,12 +126,11 @@ Read the daily log above and compile it into wiki articles following the schema 
     state.setdefault("ingested", {})[rel_path] = {
         "hash": file_hash(log_path),
         "compiled_at": now_iso(),
-        "cost_usd": cost,
+        "cost_usd": 0.0,
     }
-    state["total_cost"] = state.get("total_cost", 0.0) + cost
     save_state(state)
 
-    return cost
+    return 0.0
 
 
 def main():

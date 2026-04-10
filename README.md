@@ -1,52 +1,55 @@
-# LLM Personal Knowledge Base
+# Персональная база знаний на базе LLM
 
-**Your AI conversations compile themselves into a searchable knowledge base.**
+**Ваши диалоги с ИИ сами компилируются в базу знаний с возможностью поиска.**
 
-Adapted from [Karpathy's LLM Knowledge Base](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) architecture, but instead of clipping web articles, the raw data is your own conversations with Claude Code. When a session ends (or auto-compacts mid-session), Claude Code hooks capture the conversation transcript and spawn a background process that uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk) to extract the important stuff - decisions, lessons learned, patterns, gotchas - and appends it to a daily log. You then compile those daily logs into structured, cross-referenced knowledge articles organized by concept. Retrieval uses a simple index file instead of RAG - no vector database, no embeddings, just markdown.
+Система адаптирована на основе архитектуры [LLM Knowledge Base Андрея Карпати](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), но вместо сохранения статей из веба исходными данными служат ваши собственные диалоги с Claude Code (или Gemini CLI). Когда сессия завершается (или происходит автоматическое сжатие контекста в середине сессии), хуки перехватывают транскрипт разговора и запускают фоновый процесс. Этот процесс извлекает самое важное — решения, извлеченные уроки, паттерны, нюансы — и добавляет это в ежедневный лог. Затем эти логи компилируются в структурированные статьи, организованные по концепциям. Для поиска используется простой индексный файл вместо RAG — никакой векторной базы данных или эмбеддингов, только Markdown.
 
-Anthropic has clarified that personal use of the Claude Agent SDK is covered under your existing Claude subscription (Max, Team, or Enterprise) - no separate API credits needed. Unlike OpenClaw, which requires API billing for its memory flush, this runs on your subscription.
+## Быстрый старт
 
-## Quick Start
+Просто скажите вашему ИИ-агенту:
 
-Tell your AI coding agent:
+> "Клонируй https://github.com/coleam00/claude-memory-compiler в этот проект. Настрой хуки, чтобы мои разговоры автоматически записывались в ежедневные логи, компилировались в базу знаний и внедрялись в будущие сессии. Полную техническую информацию см. в файле AGENTS.md."
 
-> "Clone https://github.com/coleam00/claude-memory-compiler into this project. Set up the Claude Code hooks so my conversations automatically get captured into daily logs, compiled into a knowledge base, and injected back into future sessions. Read the AGENTS.md for the full technical reference on how everything works."
+Агент выполнит:
+1. Клонирование репозитория и запуск `uv sync` для установки зависимостей.
+2. Настройку хуков в `.gemini/settings.json` (или `.claude/settings.json`).
+3. Хуки активируются автоматически при следующем запуске CLI.
 
-The agent will:
-1. Clone the repo and run `uv sync` to install dependencies
-2. Copy `.claude/settings.json` into your project (or merge the hooks into your existing settings)
-3. The hooks activate automatically next time you open Claude Code
+Ваши разговоры начнут накапливаться. После 18:00 по местному времени следующая очистка сессии автоматически запустит компиляцию логов за день в статьи знаний. Вы также можете запустить `uv run python scripts/compile.py` вручную в любое время.
 
-From there, your conversations start accumulating. After 6 PM local time, the next session flush automatically triggers compilation of that day's logs into knowledge articles. You can also run `uv run python scripts/compile.py` manually at any time.
-
-## How It Works
+## Как это работает
 
 ```
-Conversation -> SessionEnd/PreCompact hooks -> flush.py extracts knowledge
-    -> daily/YYYY-MM-DD.md -> compile.py -> knowledge/concepts/, connections/, qa/
-        -> SessionStart hook injects index into next session -> cycle repeats
+Разговор -> Хуки SessionEnd/PreCompact -> flush.py извлекает знания
+    -> daily/ГГГГ-ММ-ДД.md -> compile.py -> knowledge/concepts/, connections/, qa/
+        -> Хук SessionStart внедряет индекс в следующую сессию -> цикл повторяется
 ```
 
-- **Hooks** capture conversations automatically (session end + pre-compaction safety net)
-- **flush.py** calls the Claude Agent SDK to decide what's worth saving, and after 6 PM triggers end-of-day compilation automatically
-- **compile.py** turns daily logs into organized concept articles with cross-references (triggered automatically or run manually)
-- **query.py** answers questions using index-guided retrieval (no RAG needed at personal scale)
-- **lint.py** runs 7 health checks (broken links, orphans, contradictions, staleness)
+- **Хуки** автоматически перехватывают диалоги (при завершении сессии и перед сжатием контекста).
+- **flush.py** решает, что стоит сохранить, и после 18:00 автоматически запускает итоговую компиляцию за день.
+- **compile.py** превращает ежедневные логи в организованные статьи по концепциям с перекрестными ссылками.
+- **query.py** отвечает на вопросы, используя индекс для поиска (RAG не требуется на масштабах личной базы).
+- **lint.py** выполняет 7 проверок здоровья базы (битые ссылки, сиротские страницы, противоречия, устаревание).
 
-## Key Commands
+## Основные команды
+
+Для удобства в корне проекта созданы короткие команды (работают в терминале Windows):
 
 ```bash
-uv run python scripts/compile.py                    # compile new daily logs
-uv run python scripts/query.py "question"            # ask the knowledge base
-uv run python scripts/query.py "question" --file-back # ask + save answer back
-uv run python scripts/lint.py                        # run health checks
-uv run python scripts/lint.py --structural-only      # free structural checks only
+.\compile                 # сrfкомпилировать новые логи (эквивалент uv run python scripts/compile.py)
+.\process                 # обработать внешние файлы из папки raw/ (эквивалент uv run python scripts/process_raw.py)
+
+# Остальные команды (запускаются через uv):
+uv run python scripts/query.py "ваш вопрос"          # спросить базу знаний
+uv run python scripts/query.py "вопрос" --file-back # спросить + сохранить ответ в базу
+uv run python scripts/lint.py                        # запустить проверки здоровья
+uv run python scripts/lint.py --structural-only      # только структурные проверки (бесплатно)
 ```
 
-## Why No RAG?
+## Почему без RAG?
 
-Karpathy's insight: at personal scale (50-500 articles), the LLM reading a structured `index.md` outperforms vector similarity. The LLM understands what you're really asking; cosine similarity just finds similar words. RAG becomes necessary at ~2,000+ articles when the index exceeds the context window.
+Идея Карпати: на масштабах личной базы (50–500 статей) LLM, читающая структурированный `index.md`, работает лучше векторного поиска. LLM понимает суть вопроса, в то время как косинусное сходство просто ищет похожие слова. RAG становится необходим только при объеме ~2000+ статей, когда индекс перестает влезать в окно контекста.
 
-## Technical Reference
+## Техническая справка
 
-See **[AGENTS.md](AGENTS.md)** for the complete technical reference: article formats, hook architecture, script internals, cross-platform details, costs, and customization options. AGENTS.md is designed to give an AI agent everything it needs to understand, modify, or rebuild the system.
+Полную техническую информацию: форматы статей, архитектуру хуков, внутреннее устройство скриптов, детали кроссплатформенности и варианты настройки см. в файле **[AGENTS.md](AGENTS.md)**. Файл AGENTS.md спроектирован так, чтобы дать ИИ-агенту всё необходимое для понимания, изменения или пересборки системы.

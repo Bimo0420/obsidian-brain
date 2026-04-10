@@ -41,42 +41,67 @@ MIN_TURNS_TO_FLUSH = 5
 
 
 def extract_conversation_context(transcript_path: Path) -> tuple[str, int]:
-    """Read JSONL transcript and extract last ~N conversation turns as markdown."""
+    """Read transcript (JSON array or JSONL) and extract last ~N conversation turns as markdown."""
     turns: list[str] = []
 
-    with open(transcript_path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            msg = entry.get("message", {})
-            if isinstance(msg, dict):
-                role = msg.get("role", "")
-                content = msg.get("content", "")
+    try:
+        raw_content = transcript_path.read_text(encoding="utf-8")
+        try:
+            # Try as JSON array (Gemini CLI)
+            data = json.loads(raw_content)
+            if isinstance(data, list):
+                entries = data
+            elif isinstance(data, dict):
+                # Maybe it's a single object with a messages/history key?
+                entries = data.get("messages", data.get("history", data.get("turns", [])))
             else:
-                role = entry.get("role", "")
-                content = entry.get("content", "")
+                entries = []
+        except json.JSONDecodeError:
+            # Fallback to JSONL (Claude Code)
+            entries = []
+            for line in raw_content.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except Exception as e:
+        logging.error("Failed to read transcript file: %s", e)
+        return "", 0
 
-            if role not in ("user", "assistant"):
-                continue
+    for entry in entries:
+        msg = entry.get("message", {})
+        if isinstance(msg, dict):
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if not content:
+                # Gemini style might have 'parts'
+                content = msg.get("parts", "")
+        else:
+            role = entry.get("role", "")
+            content = entry.get("content", entry.get("parts", ""))
 
-            if isinstance(content, list):
-                text_parts = []
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
+        # Handle Gemini 'model' and Claude 'assistant'
+        if role not in ("user", "assistant", "model"):
+            continue
+
+        if isinstance(content, list):
+            text_parts = []
+            for block in content:
+                if isinstance(block, dict):
+                    if block.get("type") == "text":
                         text_parts.append(block.get("text", ""))
-                    elif isinstance(block, str):
-                        text_parts.append(block)
-                content = "\n".join(text_parts)
+                    elif "text" in block:  # Gemini style parts
+                        text_parts.append(block.get("text", ""))
+                elif isinstance(block, str):
+                    text_parts.append(block)
+            content = "\n".join(text_parts)
 
-            if isinstance(content, str) and content.strip():
-                label = "User" if role == "user" else "Assistant"
-                turns.append(f"**{label}:** {content.strip()}\n")
+        if isinstance(content, str) and content.strip():
+            label = "User" if role == "user" else "Assistant"
+            turns.append(f"**{label}:** {content.strip()}\n")
 
     recent = turns[-MAX_TURNS:]
     context = "\n".join(recent)

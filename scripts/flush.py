@@ -73,18 +73,11 @@ def append_to_daily_log(content: str, section: str = "Session") -> None:
 
 
 async def run_flush(context: str) -> str:
-    """Use Claude Agent SDK to extract important knowledge from conversation context."""
-    from claude_agent_sdk import (
-        AssistantMessage,
-        ClaudeAgentOptions,
-        ResultMessage,
-        TextBlock,
-        query,
-    )
+    """Use Gemini CLI to extract important knowledge from conversation context."""
+    from utils import run_agent
 
     prompt = f"""Review the conversation context below and respond with a concise summary
 of important items that should be preserved in the daily log.
-Do NOT use any tools — just return plain text.
 
 Format your response as a structured daily log entry with these sections:
 
@@ -114,29 +107,8 @@ respond with exactly: FLUSH_OK
 
 {context}"""
 
-    response = ""
-
-    try:
-        async for message in query(
-            prompt=prompt,
-            options=ClaudeAgentOptions(
-                cwd=str(ROOT),
-                allowed_tools=[],
-                max_turns=2,
-            ),
-        ):
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        response += block.text
-            elif isinstance(message, ResultMessage):
-                pass
-    except Exception as e:
-        import traceback
-        logging.error("Agent SDK error: %s\n%s", e, traceback.format_exc())
-        response = f"FLUSH_ERROR: {type(e).__name__}: {e}"
-
-    return response
+    # For flush, we don't need tool use, so 'plan' mode (read-only) is safest.
+    return run_agent(prompt, approval_mode="plan")
 
 
 COMPILE_AFTER_HOUR = 18  # 6 PM local time

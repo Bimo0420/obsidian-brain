@@ -78,7 +78,7 @@ def read_all_wiki_content() -> str:
     for subdir in [CONCEPTS_DIR, CONNECTIONS_DIR, QA_DIR]:
         if not subdir.exists():
             continue
-        for md_file in sorted(subdir.glob("*.md")):
+        for md_file in sorted(subdir.rglob("*.md")):
             rel = md_file.relative_to(KNOWLEDGE_DIR)
             content = md_file.read_text(encoding="utf-8")
             parts.append(f"## {rel}\n\n{content}")
@@ -91,7 +91,7 @@ def list_wiki_articles() -> list[Path]:
     articles = []
     for subdir in [CONCEPTS_DIR, CONNECTIONS_DIR, QA_DIR]:
         if subdir.exists():
-            articles.extend(sorted(subdir.glob("*.md")))
+            articles.extend(sorted(subdir.rglob("*.md")))
     return articles
 
 
@@ -127,7 +127,68 @@ def get_article_word_count(path: Path) -> int:
     return len(content.split())
 
 
-def build_index_entry(rel_path: str, summary: str, sources: str, updated: str) -> str:
-    """Build a single index table row."""
-    link = rel_path.replace(".md", "")
-    return f"| [[{link}]] | {summary} | {sources} | {updated} |"
+# ── Agent execution ───────────────────────────────────────────────────
+
+def run_agent(prompt: str, approval_mode: str = "auto_edit") -> str:
+    """Run Gemini CLI agent headlessly with a prompt.
+
+    Args:
+        prompt: The prompt to send to the agent.
+        approval_mode: 'default', 'auto_edit', 'yolo', or 'plan'.
+    """
+    import subprocess
+    import os
+    import sys
+    import tempfile
+
+    # Set recursion guard for the sub-agent
+    env = os.environ.copy()
+    env["CLAUDE_INVOKED_BY"] = "memory_agent"
+
+    # Create a temporary file for the prompt to avoid shell length limits and quoting issues
+    fd, temp_path = tempfile.mkstemp(suffix=".txt", text=True)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as tmp:
+            tmp.write(prompt)
+
+        # Gemini CLI can read the prompt from stdin if we use -p without an argument, 
+        # or we can pipe the file. The safest way on Windows is:
+        # cat temp_path | gemini --approval-mode auto_edit
+        
+        if sys.platform == "win32":
+            # Use PowerShell to pipe the file content to gemini
+            cmd = [
+                "powershell.exe", "-NoProfile", "-Command",
+                f"Get-Content -Raw -Path '{temp_path}' | gemini --prompt - --approval-mode {approval_mode} --output-format text"
+            ]
+        else:
+            cmd = [
+                "bash", "-c",
+                f"cat '{temp_path}' | gemini --prompt - --approval-mode {approval_mode} --output-format text"
+            ]
+
+        # Run the command and capture output
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+            errors="replace"
+        )
+        
+        if result.returncode != 0:
+            stderr_out = result.stderr.strip()
+            stdout_out = result.stdout.strip()
+            return f"ERROR (exit {result.returncode}): {stderr_out}\n{stdout_out}"
+        
+        return result.stdout
+    except Exception as e:
+        return f"ERROR: {e}"
+    finally:
+        # Clean up
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except:
+                pass
