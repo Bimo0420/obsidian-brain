@@ -2,3 +2,20 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# AI assistant local configs
+.gemini/
+
+# Obsidian — machine-specific state (exclude)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+# Plugin user data (can contain secrets like API keys, certs)
+.obsidian/plugins/*/data.json
+# Platform-specific binaries
+.obsidian/plugins/mcp-tools/bin/
+
+# Deploy temp
+_deploy_tmp/
+
+# Secrets
+.env
