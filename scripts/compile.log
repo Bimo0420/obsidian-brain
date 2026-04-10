@@ -1,0 +1,38 @@
+Files to compile (1):
+  - 2026-04-08.md
+
+[1/1] Compiling 2026-04-08.md...
+Traceback (most recent call last):
+  File "C:\Users\alexe\VAA\iCloudDrive\iCloud~md~obsidian\wiki\scripts\compile.py", line 193, in <module>
+    main()
+  File "C:\Users\alexe\VAA\iCloudDrive\iCloud~md~obsidian\wiki\scripts\compile.py", line 183, in main
+    cost = asyncio.run(compile_daily_log(log_path, state))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alexe\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\alexe\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alexe\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\alexe\VAA\iCloudDrive\iCloud~md~obsidian\wiki\scripts\compile.py", line 120, in compile_daily_log
+    print(f"  {output}")
+  File "C:\Users\alexe\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 22-23: character maps to <undefined>
+Files to compile (1):
+  - 2026-04-08.md
+
+[1/1] Compiling 2026-04-08.md...
+  ERROR (exit 1): The string is missing the terminator: ".
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : TerminatorExpectedAtEndOfString
+ 
+
+  Done.
+
+Compilation complete. Total cost: $0.00
+Knowledge base: 0 articles

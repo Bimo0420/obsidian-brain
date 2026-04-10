@@ -1,0 +1,16 @@
+2026-04-08 19:21:51 INFO [hook] SessionEnd fired: session=test-123 source=unknown
+2026-04-08 19:21:51 INFO [hook] SKIP: empty context
+2026-04-08 19:22:24 INFO [hook] SessionEnd fired: session=test-124 source=unknown
+2026-04-08 19:22:24 INFO [hook] Spawned flush.py for session test-124 (3 turns, 282 chars)
+2026-04-08 19:22:24 INFO flush.py started for session test-124, context: C:\Users\alexe\VAA\iCloudDrive\iCloud~md~obsidian\wiki\scripts\session-flush-test-124-20260408-192224.md
+2026-04-08 19:22:24 INFO Flushing session test-124: 281 chars
+2026-04-08 19:22:25 INFO Result: saved to daily log (51 chars)
+2026-04-08 19:22:25 INFO End-of-day compilation triggered (after 18:00)
+2026-04-08 19:22:25 INFO Flush complete for session test-124
+2026-04-08 19:23:19 INFO [hook] SessionEnd fired: session=test-125 source=unknown
+2026-04-08 19:23:19 INFO [hook] Spawned flush.py for session test-125 (3 turns, 282 chars)
+2026-04-08 19:23:19 INFO flush.py started for session test-125, context: C:\Users\alexe\VAA\iCloudDrive\iCloud~md~obsidian\wiki\scripts\session-flush-test-125-20260408-192319.md
+2026-04-08 19:23:19 INFO Flushing session test-125: 281 chars
+2026-04-08 19:23:20 INFO Result: saved to daily log (207 chars)
+2026-04-08 19:23:20 INFO End-of-day compilation triggered (after 18:00)
+2026-04-08 19:23:20 INFO Flush complete for session test-125
