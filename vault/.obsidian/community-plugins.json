@@ -4,5 +4,8 @@
   "obsidian-local-rest-api",
   "terminal",
   "file-explorer-plus",
-  "dataview"
+  "dataview",
+  "marp",
+  "obsidian-style-settings",
+  "table-editor-obsidian"
 ]
