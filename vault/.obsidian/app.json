@@ -1,8 +1,0 @@
-{
-  "attachmentFolderPath": "attachments",
-  "newLinkFormat": "relative",
-  "newFileLocation": "folder",
-  "newFileFolderPath": "no-category",
-  "promptDelete": false,
-  "alwaysUpdateLinks": true
-}
